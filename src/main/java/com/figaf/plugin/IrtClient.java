@@ -82,7 +82,7 @@ public class IrtClient {
 
             List<NameValuePair> urlParameters = new ArrayList<>();
             urlParameters.add(new BasicNameValuePair("grant_type", "client_credentials"));
-            urlParameters.add(new BasicNameValuePair("scope", "public_api"));
+            urlParameters.add(new BasicNameValuePair("scope", "irt-gradle-plugin"));
 
             post.setHeader("Content-type", "application/x-www-form-urlencoded");
             post.setHeader(createBasicAuthHeader());
