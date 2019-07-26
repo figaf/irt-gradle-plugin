@@ -14,7 +14,7 @@ public class IrtPlugin implements Plugin<Project> {
 
         IrtPluginExtension irtPluginExtension = project.getExtensions().create("irtPlugin", IrtPluginExtension.class, project);
 
-        project.getTasks().register("testSuitRunner", TestSuitRunner.class, testSuitRunner -> {
+        project.getTasks().register("runTestSuit", TestSuitRunner.class, testSuitRunner -> {
             testSuitRunner.setDeploymentType(irtPluginExtension.getDeploymentType().getOrElse("on-premise"));
             testSuitRunner.setTestSuitId(irtPluginExtension.getTestSuitId().getOrNull());
             testSuitRunner.setTestSuitName(irtPluginExtension.getTestSuitName().getOrNull());
@@ -23,9 +23,10 @@ public class IrtPlugin implements Plugin<Project> {
             testSuitRunner.setClientSecret(irtPluginExtension.getClientSecret().getOrNull());
             Long delayBeforePolling = irtPluginExtension.getDelayBeforePolling().getOrNull();
             if (delayBeforePolling == null || delayBeforePolling == 0) {
-                delayBeforePolling = 5000L;
+                delayBeforePolling = 15000L;
             }
             testSuitRunner.setDelayBeforePolling(delayBeforePolling);
+            testSuitRunner.setSynchronizeBeforeRunningTestSuit(irtPluginExtension.getSynchronizeBeforeRunningTestSuit().getOrElse(true));
         });
     }
 }

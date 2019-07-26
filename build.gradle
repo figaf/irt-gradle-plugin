@@ -3,6 +3,7 @@ plugins {
     id "java-gradle-plugin"
     id "java"
     id "maven"
+    id 'maven-publish'
 }
 
 dependencies {
@@ -25,4 +26,37 @@ repositories {
 }
 
 group = 'com.figaf'
-version = '1.0-rc1'
+version = '1.0-rc2'
+
+publishing {
+    publications {
+        pluginPublication (MavenPublication) {
+            from    components.java
+            groupId    project.group
+            artifactId    "irt-plugin"
+            version    project.version
+        }
+    }
+}
+
+gradlePlugin {
+    plugins {
+        irtPlugin {
+            id = 'com.figaf.irt-plugin'
+            implementationClass = 'com.figaf.plugin.IrtPlugin'
+        }
+    }
+}
+
+pluginBundle {
+    website = 'https://github.com/figaf/irt-gradle-plugin'
+    vcsUrl = 'https://github.com/figaf/irt-gradle-plugin.git'
+    description = 'Figaf SAP IRT Plugin'
+    tags = ['sap', 'cpi', 'figaf', 'irt']
+
+    plugins {
+        irtPlugin {
+            displayName = 'Figaf IRT Plugin'
+        }
+    }
+}

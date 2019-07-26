@@ -1,5 +1,7 @@
 package com.figaf.plugin;
 
+import com.figaf.plugin.entities.SimpleIntegrationObject;
+import com.figaf.plugin.entities.SimpleSynchronizationResult;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
@@ -17,10 +19,12 @@ import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Arsenii Istlentev
@@ -48,6 +52,22 @@ public class IrtClient {
 
     public String getTestSuitIdByName(String testSuitName) {
         return getTestSuitIdByName(testSuitName, true);
+    }
+
+    public List<String> getTestCaseIdsByTestSuitId(String testSuitId) {
+        return getTestCaseIdsByTestSuitId(testSuitId, true);
+    }
+
+    public List<SimpleIntegrationObject> getTestObjectIdsByTestCaseId(String testCaseId) {
+        return getTestObjectIdsByTestCaseId(testCaseId, true);
+    }
+
+    public SimpleSynchronizationResult syncIflows(String agentId, Set<String> testObjectIds) {
+        return syncIFlows(agentId, testObjectIds, true);
+    }
+
+    public SimpleSynchronizationResult getSynchronizationResult(String agentId, String synchronizationResultId) {
+        return getSynchronizationResult(agentId, synchronizationResultId, true);
     }
 
     public String runTestSuit(String testSuitId) {
@@ -106,15 +126,12 @@ public class IrtClient {
 
     private String getTestSuitIdByName(String testSuitName, boolean firstAttempt) {
         try {
-            String url = baseUrl + "/api/v1/testing-template/search";
+            String url = String.format("%s/api/v1/testing-template/search", baseUrl);
             JSONObject requestBody = new JSONObject();
             requestBody.put("title", testSuitName);
-            HttpPost post = new HttpPost(url);
-            post.setHeader("Authorization", String.format("Bearer %s", token));
-            post.setEntity(new StringEntity(requestBody.toString(), ContentType.APPLICATION_JSON));
-            HttpResponse httpResponse = client.execute(post);
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-            String responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+            HttpPostRequestExecutor httpPostRequestExecutor = new HttpPostRequestExecutor(url, requestBody).invoke();
+            int statusCode = httpPostRequestExecutor.getStatusCode();
+            String responseString = httpPostRequestExecutor.getResponseString();
             System.out.println("test suit search response: " + responseString);
 
             switch (statusCode) {
@@ -140,17 +157,149 @@ public class IrtClient {
         }
     }
 
+    private List<String> getTestCaseIdsByTestSuitId(String testSuitId, boolean firstAttempt) {
+        try {
+            String url = String.format("%s/api/v1/testing-template/%s/test-cases", baseUrl, testSuitId);
+            HttpGetRequestExecutor httpGetRequestExecutor = new HttpGetRequestExecutor(url).invoke();
+            int statusCode = httpGetRequestExecutor.getStatusCode();
+            String responseString = httpGetRequestExecutor.getResponseString();
+
+            switch (statusCode) {
+                case 200: {
+                    JSONArray jsonArray = new JSONArray(responseString);
+                    if (jsonArray.length() == 0) {
+                        throw new RuntimeException(String.format("Test Cases attached to Test Suit %s are not found", testSuitId));
+                    }
+                    List<String> testCaseIds = new ArrayList<>();
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        JSONObject jsonObject = jsonArray.getJSONObject(i);
+                        testCaseIds.add(jsonObject.getString("id"));
+                    }
+                    return testCaseIds;
+                }
+                case 401: {
+                    if (firstAttempt) {
+                        requestTokenForTheClient();
+                        return getTestCaseIdsByTestSuitId(testSuitId, false);
+                    }
+                }
+                default: {
+                    throw new RuntimeException(String.format("Cannot find Test Cases attached to the Test Suit.\n Code %d, message: %s", statusCode, responseString));
+                }
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Error occurred while searching Test Cases attached to the Test Suit: " + ex.getMessage(), ex);
+        }
+    }
+
+    private List<SimpleIntegrationObject> getTestObjectIdsByTestCaseId(String testCaseId, boolean firstAttempt) {
+        try {
+            String url = String.format("%s/api/v1/test-case/%s/linked-integration-objects", baseUrl, testCaseId);
+            HttpGetRequestExecutor httpGetRequestExecutor = new HttpGetRequestExecutor(url).invoke();
+            int statusCode = httpGetRequestExecutor.getStatusCode();
+            String responseString = httpGetRequestExecutor.getResponseString();
+
+            switch (statusCode) {
+                case 200: {
+                    JSONArray jsonArray = new JSONArray(responseString);
+                    if (jsonArray.length() == 0) {
+                        throw new RuntimeException(String.format("Test Objects attached to Test Case %s are not found", testCaseId));
+                    }
+                    List<SimpleIntegrationObject> testObjects = new ArrayList<>();
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        JSONObject jsonObject = jsonArray.getJSONObject(i);
+                        SimpleIntegrationObject testObject = new SimpleIntegrationObject();
+                        testObject.setId(jsonObject.getString("id"));
+                        testObject.setAgentId(jsonObject.getString("agentId"));
+                        testObjects.add(testObject);
+                    }
+                    return testObjects;
+                }
+                case 401: {
+                    if (firstAttempt) {
+                        requestTokenForTheClient();
+                        return getTestObjectIdsByTestCaseId(testCaseId, false);
+                    }
+                }
+                default: {
+                    throw new RuntimeException(String.format("Cannot find Test Objects attached to the Test Case.\n Code %d, message: %s", statusCode, responseString));
+                }
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Error occurred while searching Test Objects attached to the Test Case: " + ex.getMessage(), ex);
+        }
+    }
+
+    private SimpleSynchronizationResult syncIFlows(String agentId, Set<String> testObjectIds, boolean firstAttempt) {
+        try {
+            String url = String.format("%s/api/v1/ctt/agent/%s/sync-iflows", baseUrl, agentId);
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("iflowIds", Arrays.asList(testObjectIds));
+            HttpPostRequestExecutor httpPostRequestExecutor = new HttpPostRequestExecutor(url, requestBody).invoke();
+            int statusCode = httpPostRequestExecutor.getStatusCode();
+            String responseString = httpPostRequestExecutor.getResponseString();
+
+            switch (statusCode) {
+                case 200: {
+                    JSONObject jsonResponse = new JSONObject(responseString);
+                    SimpleSynchronizationResult synchronizationResult = new SimpleSynchronizationResult();
+                    synchronizationResult.setSynchronizationResultId(jsonResponse.getString("synchronizationResultId"));
+                    synchronizationResult.setStageTitle(jsonResponse.getJSONObject("stage").getString("title"));
+                    return synchronizationResult;
+                }
+                case 401: {
+                    if (firstAttempt) {
+                        requestTokenForTheClient();
+                        return syncIFlows(agentId, testObjectIds, false);
+                    }
+                }
+                default: {
+                    throw new RuntimeException(String.format("Cannot synchronize iflows\n Code %d, message: %s", statusCode, responseString));
+                }
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Error occurred while synchronizing iflows: " + ex.getMessage(), ex);
+        }
+    }
+
+    private SimpleSynchronizationResult getSynchronizationResult(String agentId, String synchronizationResultId, boolean firstAttempt) {
+        try {
+            String url = String.format("%s/api/v1/ctt/agent/%s/sync/%s", baseUrl, agentId, synchronizationResultId);
+            HttpGetRequestExecutor httpGetRequestExecutor = new HttpGetRequestExecutor(url).invoke();
+            int statusCode = httpGetRequestExecutor.getStatusCode();
+            String responseString = httpGetRequestExecutor.getResponseString();
+
+            switch (statusCode) {
+                case 200: {
+                    JSONObject jsonResponse = new JSONObject(responseString);
+                    SimpleSynchronizationResult synchronizationResult = new SimpleSynchronizationResult();
+                    synchronizationResult.setSynchronizationResultId(jsonResponse.getString("synchronizationResultId"));
+                    synchronizationResult.setStageTitle(jsonResponse.getJSONObject("stage").getString("title"));
+                    return synchronizationResult;
+                }
+                case 401: {
+                    if (firstAttempt) {
+                        requestTokenForTheClient();
+                        return getSynchronizationResult(agentId, synchronizationResultId, false);
+                    }
+                }
+                default: {
+                    throw new RuntimeException(String.format("Cannot get synchronization result.\n Code %d, message: %s", statusCode, responseString));
+                }
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Error occurred while getting synchronization resutls: " + ex.getMessage(), ex);
+        }
+    }
+
     private String runTestSuit(String testSuitId, boolean firstAttempt) {
         try {
-            String url = baseUrl + "/api/v1/testing-template/run";
+            String url = String.format("%s/api/v1/testing-template/run", baseUrl);
             JSONObject requestBody = new JSONObject();
             requestBody.put("testingTemplateIds", Arrays.asList(testSuitId));
-            HttpPost post = new HttpPost(url);
-            post.setHeader("Authorization", String.format("Bearer %s", token));
-            post.setEntity(new StringEntity(requestBody.toString(), ContentType.APPLICATION_JSON));
-            HttpResponse httpResponse = client.execute(post);
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-            String responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+            HttpPostRequestExecutor httpPostRequestExecutor = new HttpPostRequestExecutor(url, requestBody).invoke();
+            int statusCode = httpPostRequestExecutor.getStatusCode();
+            String responseString = httpPostRequestExecutor.getResponseString();
             System.out.println("run test suit response: " + responseString);
 
             switch (statusCode) {
@@ -175,15 +324,12 @@ public class IrtClient {
 
     private String pollMessages(String testTemplateRunId, boolean firstAttempt) {
         try {
-            String url = baseUrl + "/api/v1/polling/poll-messages";
+            String url = String.format("%s/api/v1/polling/poll-messages", baseUrl);
             JSONObject requestBody = new JSONObject();
             requestBody.put("testingTemplateRunIds", Arrays.asList(testTemplateRunId));
-            HttpPost post = new HttpPost(url);
-            post.setHeader("Authorization", String.format("Bearer %s", token));
-            post.setEntity(new StringEntity(requestBody.toString(), ContentType.APPLICATION_JSON));
-            HttpResponse httpResponse = client.execute(post);
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-            String responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+            HttpPostRequestExecutor httpPostRequestExecutor = new HttpPostRequestExecutor(url, requestBody).invoke();
+            int statusCode = httpPostRequestExecutor.getStatusCode();
+            String responseString = httpPostRequestExecutor.getResponseString();
             System.out.println("poll messages response: " + responseString);
 
             switch (statusCode) {
@@ -208,12 +354,10 @@ public class IrtClient {
 
     private String getPollingResult(String pollingRequestId, boolean firstAttempt) {
         try {
-            String url = baseUrl + "/api/v1/polling/result/" + pollingRequestId;
-            HttpGet httpGet = new HttpGet(url);
-            httpGet.setHeader("Authorization", String.format("Bearer %s", token));
-            HttpResponse httpResponse = client.execute(httpGet);
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-            String responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+            String url = String.format("%s/api/v1/polling/result/%s", baseUrl, pollingRequestId);
+            HttpGetRequestExecutor httpGetRequestExecutor = new HttpGetRequestExecutor(url).invoke();
+            int statusCode = httpGetRequestExecutor.getStatusCode();
+            String responseString = httpGetRequestExecutor.getResponseString();
             System.out.println("get polling result response: " + responseString);
 
             switch (statusCode) {
@@ -238,12 +382,10 @@ public class IrtClient {
 
     private String getTestSuitRunLastResult(String testSuitId, boolean firstAttempt) {
         try {
-            String url = baseUrl + "/api/v1/testing-template-run/" + testSuitId + "/last-result";
-            HttpGet httpGet = new HttpGet(url);
-            httpGet.setHeader("Authorization", String.format("Bearer %s", token));
-            HttpResponse httpResponse = client.execute(httpGet);
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-            String responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+            String url = String.format("%s/api/v1/testing-template-run/%s/last-result", baseUrl, testSuitId);
+            HttpGetRequestExecutor httpGetRequestExecutor = new HttpGetRequestExecutor(url).invoke();
+            int statusCode = httpGetRequestExecutor.getStatusCode();
+            String responseString = httpGetRequestExecutor.getResponseString();
             System.out.println("get test suit run last result: " + responseString);
 
             switch (statusCode) {
@@ -276,5 +418,62 @@ public class IrtClient {
                 )
             )
         );
+    }
+
+    private class HttpPostRequestExecutor {
+        private String url;
+        private JSONObject requestBody;
+        private int statusCode;
+        private String responseString;
+
+        public HttpPostRequestExecutor(String url, JSONObject requestBody) {
+            this.url = url;
+            this.requestBody = requestBody;
+        }
+
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public String getResponseString() {
+            return responseString;
+        }
+
+        public HttpPostRequestExecutor invoke() throws IOException {
+            HttpPost post = new HttpPost(url);
+            post.setHeader("Authorization", String.format("Bearer %s", token));
+            post.setEntity(new StringEntity(requestBody.toString(), ContentType.APPLICATION_JSON));
+            HttpResponse httpResponse = client.execute(post);
+            statusCode = httpResponse.getStatusLine().getStatusCode();
+            responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+            return this;
+        }
+    }
+
+    private class HttpGetRequestExecutor {
+        private String url;
+        private int statusCode;
+        private String responseString;
+
+        public HttpGetRequestExecutor(String url) {
+            this.url = url;
+        }
+
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public String getResponseString() {
+            return responseString;
+        }
+
+        public HttpGetRequestExecutor invoke() throws IOException {
+            HttpGet httpGet = new HttpGet(url);
+            httpGet.setHeader("Authorization", String.format("Bearer %s", token));
+            HttpResponse httpResponse = client.execute(httpGet);
+            statusCode = httpResponse.getStatusLine().getStatusCode();
+            responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+            return this;
+        }
     }
 }

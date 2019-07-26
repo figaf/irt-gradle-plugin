@@ -1,10 +1,14 @@
 package com.figaf.plugin.tasks;
 
 import com.figaf.plugin.IrtClient;
+import com.figaf.plugin.entities.SimpleIntegrationObject;
+import com.figaf.plugin.entities.SimpleSynchronizationResult;
 import lombok.Setter;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.TaskAction;
+
+import java.util.*;
 
 /**
  * @author Arsenii Istlentev
@@ -39,6 +43,9 @@ public class TestSuitRunner extends DefaultTask {
     @Input
     private Long delayBeforePolling;
 
+    @Input
+    private Boolean synchronizeBeforeRunningTestSuit;
+
     @TaskAction
     public void taskAction() {
         try {
@@ -48,6 +55,7 @@ public class TestSuitRunner extends DefaultTask {
             System.out.println("testSuitId = " + testSuitId);
             System.out.println("testSuitName = " + testSuitName);
             System.out.println("delayBeforePolling = " + delayBeforePolling);
+            System.out.println("synchronizeBeforeRunningTestSuit = " + synchronizeBeforeRunningTestSuit);
 
             if (testSuitId == null && testSuitName == null) {
                 throw new RuntimeException("testSuitId or testSuitName must be provided");
@@ -58,6 +66,32 @@ public class TestSuitRunner extends DefaultTask {
 
             if (testSuitId == null) {
                 testSuitId = irtClient.getTestSuitIdByName(testSuitName);
+            }
+
+            if (synchronizeBeforeRunningTestSuit) {
+                List<String> testCaseIds = irtClient.getTestCaseIdsByTestSuitId(testSuitId);
+                Map<String, Set<String>> agentIdToTestObjects = new HashMap<>();
+                for (String testCaseId : testCaseIds) {
+                    List<SimpleIntegrationObject> testObjects = irtClient.getTestObjectIdsByTestCaseId(testCaseId);
+                    for (SimpleIntegrationObject testObject : testObjects) {
+                        if (!agentIdToTestObjects.containsKey(testObject.getAgentId())) {
+                            agentIdToTestObjects.put(testObject.getAgentId(), new HashSet<>());
+                        }
+                        agentIdToTestObjects.get(testObject.getAgentId()).add(testObject.getId());
+                    }
+                }
+                System.out.println("agentIdToTestObjects = " + agentIdToTestObjects);
+                for (Map.Entry<String, Set<String>> entry : agentIdToTestObjects.entrySet()) {
+                    String agentId = entry.getKey();
+                    Set<String> testObjectIds = entry.getValue();
+                    SimpleSynchronizationResult synchronizationResult = irtClient.syncIflows(agentId, testObjectIds);
+                    System.out.println("synchronizationResult = " + synchronizationResult);
+                    while (!"Synchronization finished".equals(synchronizationResult.getStageTitle())) {
+                        Thread.sleep(5000L);
+                        synchronizationResult = irtClient.getSynchronizationResult(agentId, synchronizationResult.getSynchronizationResultId());
+                        System.out.println("synchronizationResult = " + synchronizationResult);
+                    }
+                }
             }
 
             String testingTemplateRunId = irtClient.runTestSuit(testSuitId);
@@ -94,7 +128,7 @@ public class TestSuitRunner extends DefaultTask {
                 }
             }
             if (!"SUCCESS".equals(testingTemplateRunLastResult)) {
-                throw new RuntimeException(String.format("Test was not successful. For more details visit %s/test-suit/%s/last-result", url, testSuitId));
+                throw new RuntimeException(String.format("Test was not successful. For more details visit %s/#/test-suit/%s/last-result", url, testSuitId));
             }
 
         } catch (Exception e) {
