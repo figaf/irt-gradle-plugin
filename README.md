@@ -1,10 +1,10 @@
 # irt-gradle-plugin
 This plugin provides an integration with Figaf IRT.
 
-##Tasks
+## Tasks
 The plugin has one task `runTestSuit` which actually runs a specified test suit in IRT.
 
-##Configuration
+## Configuration
 The tasks can be configured through an extension `irtPlugin` which accepts several parameters:
 * `deploymentType`* - deployment type of IRT. Possible values are: `on-premise`, `cloud`. Default value: `on-premise`
 * `url`* - basic path to the IRT server. Example: `https://app.figaf.com` (for cloud deployment) or `http://localhost:8089/irt` (for on-premise deployment)
