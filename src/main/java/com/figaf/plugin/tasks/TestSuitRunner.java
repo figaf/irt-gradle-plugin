@@ -128,7 +128,7 @@ public class TestSuitRunner extends DefaultTask {
                 }
             }
             if (!"SUCCESS".equals(testingTemplateRunLastResult)) {
-                throw new RuntimeException(String.format("Test was not successful. For more details visit %s/#/test-suit/%s/last-result", url, testSuitId));
+                throw new RuntimeException(String.format("Test was not successful. For more details visit %s/#/test-suite/%s/last-result", url, testSuitId));
             }
 
         } catch (Exception e) {
