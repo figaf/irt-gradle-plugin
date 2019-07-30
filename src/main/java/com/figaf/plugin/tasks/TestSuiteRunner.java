@@ -14,7 +14,7 @@ import java.util.*;
  * @author Arsenii Istlentev
  */
 @Setter
-public class TestSuitRunner extends DefaultTask {
+public class TestSuiteRunner extends DefaultTask {
 
     private static final int MAX_NUMBER_OF_ITERATIONS_FOR_POLLING = 150;
     private static final long SLEEP_TIME_FOR_POLLING = 2000L;
@@ -35,16 +35,16 @@ public class TestSuitRunner extends DefaultTask {
     private String clientSecret;
 
     @Input
-    private String testSuitId;
+    private String testSuiteId;
 
     @Input
-    private String testSuitName;
+    private String testSuiteName;
 
     @Input
     private Long delayBeforePolling;
 
     @Input
-    private Boolean synchronizeBeforeRunningTestSuit;
+    private Boolean synchronizeBeforeRunningTestSuite;
 
     @TaskAction
     public void taskAction() {
@@ -52,24 +52,24 @@ public class TestSuitRunner extends DefaultTask {
             System.out.println("deploymentType = " + deploymentType);
             System.out.println("url = " + url);
             System.out.println("clientId = " + clientId);
-            System.out.println("testSuitId = " + testSuitId);
-            System.out.println("testSuitName = " + testSuitName);
+            System.out.println("testSuiteId = " + testSuiteId);
+            System.out.println("testSuiteName = " + testSuiteName);
             System.out.println("delayBeforePolling = " + delayBeforePolling);
-            System.out.println("synchronizeBeforeRunningTestSuit = " + synchronizeBeforeRunningTestSuit);
+            System.out.println("synchronizeBeforeRunningTestSuite = " + synchronizeBeforeRunningTestSuite);
 
-            if (testSuitId == null && testSuitName == null) {
-                throw new RuntimeException("testSuitId or testSuitName must be provided");
+            if (testSuiteId == null && testSuiteName == null) {
+                throw new RuntimeException("testSuiteId or testSuiteName must be provided");
             }
 
             IrtClient irtClient = new IrtClient(deploymentType, url, clientId, clientSecret);
             irtClient.authorize();
 
-            if (testSuitId == null) {
-                testSuitId = irtClient.getTestSuitIdByName(testSuitName);
+            if (testSuiteId == null) {
+                testSuiteId = irtClient.getTestSuiteIdByName(testSuiteName);
             }
 
-            if (synchronizeBeforeRunningTestSuit) {
-                List<String> testCaseIds = irtClient.getTestCaseIdsByTestSuitId(testSuitId);
+            if (synchronizeBeforeRunningTestSuite) {
+                List<String> testCaseIds = irtClient.getTestCaseIdsByTestSuiteId(testSuiteId);
                 Map<String, Set<String>> agentIdToTestObjects = new HashMap<>();
                 for (String testCaseId : testCaseIds) {
                     List<SimpleIntegrationObject> testObjects = irtClient.getTestObjectIdsByTestCaseId(testCaseId);
@@ -94,7 +94,7 @@ public class TestSuitRunner extends DefaultTask {
                 }
             }
 
-            String testingTemplateRunId = irtClient.runTestSuit(testSuitId);
+            String testingTemplateRunId = irtClient.runTestSuite(testSuiteId);
 
             Thread.sleep(delayBeforePolling);
             String pollingRequestId = irtClient.pollMessages(testingTemplateRunId);
@@ -112,14 +112,14 @@ public class TestSuitRunner extends DefaultTask {
             }
             if (!pollingCompleted) {
                 throw new RuntimeException(String.format("Polling hasn't been completed within %d ms\n" +
-                    "For more details visit %s/test-suit/%s/last-result", MAX_NUMBER_OF_ITERATIONS_FOR_POLLING * SLEEP_TIME_FOR_POLLING, url, testSuitId));
+                    "For more details visit %s/test-suite/%s/last-result", MAX_NUMBER_OF_ITERATIONS_FOR_POLLING * SLEEP_TIME_FOR_POLLING, url, testSuiteId));
             }
 
             numberOfIterations = 1;
             boolean testRunResultCompleted = false;
             String testingTemplateRunLastResult = null;
             while (!testRunResultCompleted && numberOfIterations <= MAX_NUMBER_OF_ITERATION_FOR_TEST_RUN_RESULTS) {
-                testingTemplateRunLastResult = irtClient.getTestSuitRunLastResult(testSuitId);
+                testingTemplateRunLastResult = irtClient.getTestSuiteRunLastResult(testSuiteId);
                 if ("UNFINISHED".equals(testingTemplateRunLastResult)) {
                     numberOfIterations++;
                     Thread.sleep(SLEEP_TIME_FOR_TEST_RUN_RESULTS);
@@ -128,7 +128,7 @@ public class TestSuitRunner extends DefaultTask {
                 }
             }
             if (!"SUCCESS".equals(testingTemplateRunLastResult)) {
-                throw new RuntimeException(String.format("Test was not successful. For more details visit %s/#/test-suite/%s/last-result", url, testSuitId));
+                throw new RuntimeException(String.format("Test was not successful. For more details visit %s/#/test-suite/%s/last-result", url, testSuiteId));
             }
 
         } catch (Exception e) {

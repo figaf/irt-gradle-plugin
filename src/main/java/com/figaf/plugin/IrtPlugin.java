@@ -1,6 +1,6 @@
 package com.figaf.plugin;
 
-import com.figaf.plugin.tasks.TestSuitRunner;
+import com.figaf.plugin.tasks.TestSuiteRunner;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
@@ -14,19 +14,19 @@ public class IrtPlugin implements Plugin<Project> {
 
         IrtPluginExtension irtPluginExtension = project.getExtensions().create("irtPlugin", IrtPluginExtension.class, project);
 
-        project.getTasks().register("runTestSuit", TestSuitRunner.class, testSuitRunner -> {
-            testSuitRunner.setDeploymentType(irtPluginExtension.getDeploymentType().getOrElse("on-premise"));
-            testSuitRunner.setTestSuitId(irtPluginExtension.getTestSuitId().getOrNull());
-            testSuitRunner.setTestSuitName(irtPluginExtension.getTestSuitName().getOrNull());
-            testSuitRunner.setUrl(irtPluginExtension.getUrl().getOrNull());
-            testSuitRunner.setClientId(irtPluginExtension.getClientId().getOrNull());
-            testSuitRunner.setClientSecret(irtPluginExtension.getClientSecret().getOrNull());
+        project.getTasks().register("runTestSuite", TestSuiteRunner.class, testSuiteRunner -> {
+            testSuiteRunner.setDeploymentType(irtPluginExtension.getDeploymentType().getOrElse("on-premise"));
+            testSuiteRunner.setTestSuiteId(irtPluginExtension.getTestSuiteId().getOrNull());
+            testSuiteRunner.setTestSuiteName(irtPluginExtension.getTestSuiteName().getOrNull());
+            testSuiteRunner.setUrl(irtPluginExtension.getUrl().getOrNull());
+            testSuiteRunner.setClientId(irtPluginExtension.getClientId().getOrNull());
+            testSuiteRunner.setClientSecret(irtPluginExtension.getClientSecret().getOrNull());
             Long delayBeforePolling = irtPluginExtension.getDelayBeforePolling().getOrNull();
             if (delayBeforePolling == null || delayBeforePolling == 0) {
                 delayBeforePolling = 15000L;
             }
-            testSuitRunner.setDelayBeforePolling(delayBeforePolling);
-            testSuitRunner.setSynchronizeBeforeRunningTestSuit(irtPluginExtension.getSynchronizeBeforeRunningTestSuit().getOrElse(true));
+            testSuiteRunner.setDelayBeforePolling(delayBeforePolling);
+            testSuiteRunner.setSynchronizeBeforeRunningTestSuite(irtPluginExtension.getSynchronizeBeforeRunningTestSuite().getOrElse(true));
         });
     }
 }

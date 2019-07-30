@@ -50,12 +50,12 @@ public class IrtClient {
         requestTokenForTheClient();
     }
 
-    public String getTestSuitIdByName(String testSuitName) {
-        return getTestSuitIdByName(testSuitName, true);
+    public String getTestSuiteIdByName(String testSuiteName) {
+        return getTestSuiteIdByName(testSuiteName, true);
     }
 
-    public List<String> getTestCaseIdsByTestSuitId(String testSuitId) {
-        return getTestCaseIdsByTestSuitId(testSuitId, true);
+    public List<String> getTestCaseIdsByTestSuiteId(String testSuiteId) {
+        return getTestCaseIdsByTestSuiteId(testSuiteId, true);
     }
 
     public List<SimpleIntegrationObject> getTestObjectIdsByTestCaseId(String testCaseId) {
@@ -70,8 +70,8 @@ public class IrtClient {
         return getSynchronizationResult(agentId, synchronizationResultId, true);
     }
 
-    public String runTestSuit(String testSuitId) {
-        return runTestSuit(testSuitId, true);
+    public String runTestSuite(String testSuiteId) {
+        return runTestSuite(testSuiteId, true);
     }
 
     public String pollMessages(String testTemplateRunId) {
@@ -82,8 +82,8 @@ public class IrtClient {
         return getPollingResult(pollingRequestId, true);
     }
 
-    public String getTestSuitRunLastResult(String testSuitId) {
-        return getTestSuitRunLastResult(testSuitId, true);
+    public String getTestSuiteRunLastResult(String testSuiteId) {
+        return getTestSuiteRunLastResult(testSuiteId, true);
     }
 
     private void requestTokenForTheClient() {
@@ -117,49 +117,49 @@ public class IrtClient {
                 JSONObject jsonResponse = new JSONObject(responseString);
                 token = jsonResponse.getString("access_token");
             } else {
-                throw new RuntimeException(String.format("Cannot run test suit.\n Code %d, message: %s", statusCode, responseString));
+                throw new RuntimeException(String.format("Cannot run test suitee.\n Code %d, message: %s", statusCode, responseString));
             }
         } catch (Exception ex) {
             throw new RuntimeException("Error occurred while trying to get token: " + ex.getMessage(), ex);
         }
     }
 
-    private String getTestSuitIdByName(String testSuitName, boolean firstAttempt) {
+    private String getTestSuiteIdByName(String testSuiteName, boolean firstAttempt) {
         try {
             String url = String.format("%s/api/v1/testing-template/search", baseUrl);
             JSONObject requestBody = new JSONObject();
-            requestBody.put("title", testSuitName);
+            requestBody.put("title", testSuiteName);
             HttpPostRequestExecutor httpPostRequestExecutor = new HttpPostRequestExecutor(url, requestBody).invoke();
             int statusCode = httpPostRequestExecutor.getStatusCode();
             String responseString = httpPostRequestExecutor.getResponseString();
-            System.out.println("test suit search response: " + responseString);
+            System.out.println("test suite search response: " + responseString);
 
             switch (statusCode) {
                 case 200: {
                     JSONArray jsonArray = new JSONArray(responseString);
                     if (jsonArray.length() == 0) {
-                        throw new RuntimeException(String.format("Test suit with name %s is not found", testSuitName));
+                        throw new RuntimeException(String.format("Test Suite with name %s is not found", testSuiteName));
                     }
                     return jsonArray.getJSONObject(0).getString("id");
                 }
                 case 401: {
                     if (firstAttempt) {
                         requestTokenForTheClient();
-                        return getTestSuitIdByName(testSuitName, false);
+                        return getTestSuiteIdByName(testSuiteName, false);
                     }
                 }
                 default: {
-                    throw new RuntimeException(String.format("Cannot search test suit.\n Code %d, message: %s", statusCode, responseString));
+                    throw new RuntimeException(String.format("Cannot search test suite.\n Code %d, message: %s", statusCode, responseString));
                 }
             }
         } catch (Exception ex) {
-            throw new RuntimeException("Error occurred while searching test suit: " + ex.getMessage(), ex);
+            throw new RuntimeException("Error occurred while searching test suite: " + ex.getMessage(), ex);
         }
     }
 
-    private List<String> getTestCaseIdsByTestSuitId(String testSuitId, boolean firstAttempt) {
+    private List<String> getTestCaseIdsByTestSuiteId(String testSuiteId, boolean firstAttempt) {
         try {
-            String url = String.format("%s/api/v1/testing-template/%s/test-cases", baseUrl, testSuitId);
+            String url = String.format("%s/api/v1/testing-template/%s/test-cases", baseUrl, testSuiteId);
             HttpGetRequestExecutor httpGetRequestExecutor = new HttpGetRequestExecutor(url).invoke();
             int statusCode = httpGetRequestExecutor.getStatusCode();
             String responseString = httpGetRequestExecutor.getResponseString();
@@ -168,7 +168,7 @@ public class IrtClient {
                 case 200: {
                     JSONArray jsonArray = new JSONArray(responseString);
                     if (jsonArray.length() == 0) {
-                        throw new RuntimeException(String.format("Test Cases attached to Test Suit %s are not found", testSuitId));
+                        throw new RuntimeException(String.format("Test Cases attached to Test Suite %s are not found", testSuiteId));
                     }
                     List<String> testCaseIds = new ArrayList<>();
                     for (int i = 0; i < jsonArray.length(); i++) {
@@ -180,15 +180,15 @@ public class IrtClient {
                 case 401: {
                     if (firstAttempt) {
                         requestTokenForTheClient();
-                        return getTestCaseIdsByTestSuitId(testSuitId, false);
+                        return getTestCaseIdsByTestSuiteId(testSuiteId, false);
                     }
                 }
                 default: {
-                    throw new RuntimeException(String.format("Cannot find Test Cases attached to the Test Suit.\n Code %d, message: %s", statusCode, responseString));
+                    throw new RuntimeException(String.format("Cannot find Test Cases attached to the Test Suite.\n Code %d, message: %s", statusCode, responseString));
                 }
             }
         } catch (Exception ex) {
-            throw new RuntimeException("Error occurred while searching Test Cases attached to the Test Suit: " + ex.getMessage(), ex);
+            throw new RuntimeException("Error occurred while searching Test Cases attached to the Test Suite: " + ex.getMessage(), ex);
         }
     }
 
@@ -292,15 +292,15 @@ public class IrtClient {
         }
     }
 
-    private String runTestSuit(String testSuitId, boolean firstAttempt) {
+    private String runTestSuite(String testSuiteId, boolean firstAttempt) {
         try {
             String url = String.format("%s/api/v1/testing-template/run", baseUrl);
             JSONObject requestBody = new JSONObject();
-            requestBody.put("testingTemplateIds", Arrays.asList(testSuitId));
+            requestBody.put("testingTemplateIds", Arrays.asList(testSuiteId));
             HttpPostRequestExecutor httpPostRequestExecutor = new HttpPostRequestExecutor(url, requestBody).invoke();
             int statusCode = httpPostRequestExecutor.getStatusCode();
             String responseString = httpPostRequestExecutor.getResponseString();
-            System.out.println("run test suit response: " + responseString);
+            System.out.println("run test suite response: " + responseString);
 
             switch (statusCode) {
                 case 200: {
@@ -310,15 +310,15 @@ public class IrtClient {
                 case 401: {
                     if (firstAttempt) {
                         requestTokenForTheClient();
-                        return runTestSuit(testSuitId, false);
+                        return runTestSuite(testSuiteId, false);
                     }
                 }
                 default: {
-                    throw new RuntimeException(String.format("Cannot run test suit.\n Code %d, message: %s", statusCode, responseString));
+                    throw new RuntimeException(String.format("Cannot run test suite.\n Code %d, message: %s", statusCode, responseString));
                 }
             }
         } catch (Exception ex) {
-            throw new RuntimeException("Error occurred while running test suit: " + ex.getMessage(), ex);
+            throw new RuntimeException("Error occurred while running test suite: " + ex.getMessage(), ex);
         }
     }
 
@@ -380,13 +380,13 @@ public class IrtClient {
         }
     }
 
-    private String getTestSuitRunLastResult(String testSuitId, boolean firstAttempt) {
+    private String getTestSuiteRunLastResult(String testSuiteId, boolean firstAttempt) {
         try {
-            String url = String.format("%s/api/v1/testing-template-run/%s/last-result", baseUrl, testSuitId);
+            String url = String.format("%s/api/v1/testing-template-run/%s/last-result", baseUrl, testSuiteId);
             HttpGetRequestExecutor httpGetRequestExecutor = new HttpGetRequestExecutor(url).invoke();
             int statusCode = httpGetRequestExecutor.getStatusCode();
             String responseString = httpGetRequestExecutor.getResponseString();
-            System.out.println("get test suit run last result: " + responseString);
+            System.out.println("get test suite run last result: " + responseString);
 
             switch (statusCode) {
                 case 200: {
@@ -396,15 +396,15 @@ public class IrtClient {
                 case 401: {
                     if (firstAttempt) {
                         requestTokenForTheClient();
-                        return getTestSuitRunLastResult(testSuitId, false);
+                        return getTestSuiteRunLastResult(testSuiteId, false);
                     }
                 }
                 default: {
-                    throw new RuntimeException(String.format("Cannot get test suit run last result.\n Code %d, message: %s", statusCode, responseString));
+                    throw new RuntimeException(String.format("Cannot get test suite run last result.\n Code %d, message: %s", statusCode, responseString));
                 }
             }
         } catch (Exception ex) {
-            throw new RuntimeException("Error occurred while getting test suit run last result: " + ex.getMessage(), ex);
+            throw new RuntimeException("Error occurred while getting test suite run last result: " + ex.getMessage(), ex);
         }
     }
 
