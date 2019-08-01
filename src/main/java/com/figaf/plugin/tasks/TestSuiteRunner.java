@@ -133,6 +133,7 @@ public class TestSuiteRunner extends DefaultTask {
 
         } catch (Exception e) {
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 }
