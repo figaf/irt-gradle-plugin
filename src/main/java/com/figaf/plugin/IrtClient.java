@@ -102,7 +102,7 @@ public class IrtClient {
 
             List<NameValuePair> urlParameters = new ArrayList<>();
             urlParameters.add(new BasicNameValuePair("grant_type", "client_credentials"));
-            urlParameters.add(new BasicNameValuePair("scope", "irt-gradle-plugin"));
+            urlParameters.add(new BasicNameValuePair("scope", "test-suite:read test-suite:run test-case:read test-suite-run:read ctt:sync polling:manage"));
 
             post.setHeader("Content-type", "application/x-www-form-urlencoded");
             post.setHeader(createBasicAuthHeader());
