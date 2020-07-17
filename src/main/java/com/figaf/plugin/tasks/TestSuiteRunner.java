@@ -4,6 +4,7 @@ import com.figaf.plugin.IrtClient;
 import com.figaf.plugin.entities.SimpleIntegrationObject;
 import com.figaf.plugin.entities.SimpleSynchronizationResult;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.TaskAction;
@@ -57,14 +58,14 @@ public class TestSuiteRunner extends DefaultTask {
             System.out.println("delayBeforePolling = " + delayBeforePolling);
             System.out.println("synchronizeBeforeRunningTestSuite = " + synchronizeBeforeRunningTestSuite);
 
-            if (testSuiteId == null && testSuiteName == null) {
+            if (StringUtils.isEmpty(testSuiteId) && StringUtils.isEmpty(testSuiteName)) {
                 throw new RuntimeException("testSuiteId or testSuiteName must be provided");
             }
 
             IrtClient irtClient = new IrtClient(deploymentType, url, clientId, clientSecret);
             irtClient.authorize();
 
-            if (testSuiteId == null) {
+            if (StringUtils.isEmpty(testSuiteId)) {
                 testSuiteId = irtClient.getTestSuiteIdByName(testSuiteName);
             }
 
