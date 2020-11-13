@@ -47,6 +47,9 @@ public class TestSuiteRunner extends DefaultTask {
     @Input
     private Boolean synchronizeBeforeRunningTestSuite;
 
+    @Input
+    private String testSystemId;
+
     @TaskAction
     public void taskAction() {
         try {
@@ -57,6 +60,7 @@ public class TestSuiteRunner extends DefaultTask {
             System.out.println("testSuiteName = " + testSuiteName);
             System.out.println("delayBeforePolling = " + delayBeforePolling);
             System.out.println("synchronizeBeforeRunningTestSuite = " + synchronizeBeforeRunningTestSuite);
+            System.out.println("testSystemId = " + testSystemId);
 
             if (StringUtils.isEmpty(testSuiteId) && StringUtils.isEmpty(testSuiteName)) {
                 throw new RuntimeException("testSuiteId or testSuiteName must be provided");
@@ -95,7 +99,7 @@ public class TestSuiteRunner extends DefaultTask {
                 }
             }
 
-            String testingTemplateRunId = irtClient.runTestSuite(testSuiteId);
+            String testingTemplateRunId = irtClient.runTestSuite(testSuiteId, testSystemId);
 
             Thread.sleep(delayBeforePolling);
             String pollingRequestId = irtClient.pollMessages(testingTemplateRunId);

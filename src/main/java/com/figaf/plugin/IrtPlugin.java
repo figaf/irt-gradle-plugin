@@ -27,6 +27,7 @@ public class IrtPlugin implements Plugin<Project> {
             }
             testSuiteRunner.setDelayBeforePolling(delayBeforePolling);
             testSuiteRunner.setSynchronizeBeforeRunningTestSuite(irtPluginExtension.getSynchronizeBeforeRunningTestSuite().getOrElse(true));
+            testSuiteRunner.setTestSystemId(irtPluginExtension.getTestSystemId().getOrNull());
         });
     }
 }
