@@ -4,6 +4,7 @@ import com.figaf.plugin.entities.SimpleIntegrationObject;
 import com.figaf.plugin.entities.SimpleSynchronizationResult;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -11,6 +12,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
@@ -21,10 +23,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Arsenii Istlentev
@@ -70,8 +69,8 @@ public class IrtClient {
         return getSynchronizationResult(agentId, synchronizationResultId, true);
     }
 
-    public String runTestSuite(String testSuiteId) {
-        return runTestSuite(testSuiteId, true);
+    public String runTestSuite(String testSuiteId, String testSystemId) {
+        return runTestSuite(testSuiteId, testSystemId, true);
     }
 
     public String pollMessages(String testTemplateRunId) {
@@ -87,6 +86,7 @@ public class IrtClient {
     }
 
     private void requestTokenForTheClient() {
+        HttpResponse httpResponse = null;
         try {
             System.out.println("requestTokenForTheClient");
             String uri;
@@ -108,7 +108,7 @@ public class IrtClient {
             post.setHeader(createBasicAuthHeader());
             post.setEntity(new UrlEncodedFormEntity(urlParameters));
 
-            HttpResponse httpResponse = client.execute(post);
+            httpResponse = client.execute(post);
 
             int statusCode = httpResponse.getStatusLine().getStatusCode();
             String responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
@@ -121,6 +121,8 @@ public class IrtClient {
             }
         } catch (Exception ex) {
             throw new RuntimeException("Error occurred while trying to get token: " + ex.getMessage(), ex);
+        } finally {
+            HttpClientUtils.closeQuietly(httpResponse);
         }
     }
 
@@ -292,11 +294,15 @@ public class IrtClient {
         }
     }
 
-    private String runTestSuite(String testSuiteId, boolean firstAttempt) {
+    private String runTestSuite(String testSuiteId, String testSystemId, boolean firstAttempt) {
         try {
             String url = String.format("%s/api/v1/testing-template/run", baseUrl);
             JSONObject requestBody = new JSONObject();
-            requestBody.put("testingTemplateIds", Arrays.asList(testSuiteId));
+            requestBody.put("testingTemplateIds", Collections.singletonList(testSuiteId));
+            if (StringUtils.isNotEmpty(testSystemId)) {
+                requestBody.put("testingTemplateIdToTestSystemIds", Collections.singletonMap(testSuiteId, Collections.singletonList(testSystemId)));
+            }
+            System.out.println("requestBody = " + requestBody);
             HttpPostRequestExecutor httpPostRequestExecutor = new HttpPostRequestExecutor(url, requestBody).invoke();
             int statusCode = httpPostRequestExecutor.getStatusCode();
             String responseString = httpPostRequestExecutor.getResponseString();
@@ -310,7 +316,7 @@ public class IrtClient {
                 case 401: {
                     if (firstAttempt) {
                         requestTokenForTheClient();
-                        return runTestSuite(testSuiteId, false);
+                        return runTestSuite(testSuiteId, testSystemId, false);
                     }
                 }
                 default: {
@@ -440,13 +446,18 @@ public class IrtClient {
         }
 
         public HttpPostRequestExecutor invoke() throws IOException {
-            HttpPost post = new HttpPost(url);
-            post.setHeader("Authorization", String.format("Bearer %s", token));
-            post.setEntity(new StringEntity(requestBody.toString(), ContentType.APPLICATION_JSON));
-            HttpResponse httpResponse = client.execute(post);
-            statusCode = httpResponse.getStatusLine().getStatusCode();
-            responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
-            return this;
+            HttpResponse httpResponse = null;
+            try {
+                HttpPost post = new HttpPost(url);
+                post.setHeader("Authorization", String.format("Bearer %s", token));
+                post.setEntity(new StringEntity(requestBody.toString(), ContentType.APPLICATION_JSON));
+                httpResponse = client.execute(post);
+                statusCode = httpResponse.getStatusLine().getStatusCode();
+                responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+                return this;
+            } finally {
+                HttpClientUtils.closeQuietly(httpResponse);
+            }
         }
     }
 
@@ -468,12 +479,17 @@ public class IrtClient {
         }
 
         public HttpGetRequestExecutor invoke() throws IOException {
-            HttpGet httpGet = new HttpGet(url);
-            httpGet.setHeader("Authorization", String.format("Bearer %s", token));
-            HttpResponse httpResponse = client.execute(httpGet);
-            statusCode = httpResponse.getStatusLine().getStatusCode();
-            responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
-            return this;
+            HttpResponse httpResponse = null;
+            try {
+                HttpGet httpGet = new HttpGet(url);
+                httpGet.setHeader("Authorization", String.format("Bearer %s", token));
+                httpResponse = client.execute(httpGet);
+                statusCode = httpResponse.getStatusLine().getStatusCode();
+                responseString = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+                return this;
+            } finally {
+                HttpClientUtils.closeQuietly(httpResponse);
+            }
         }
     }
 }
