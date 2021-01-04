@@ -63,7 +63,8 @@ public class TestSuiteRunner extends DefaultTask {
             System.out.println("testSystemId = " + testSystemId);
 
             if (StringUtils.isEmpty(testSuiteId) && StringUtils.isEmpty(testSuiteName)) {
-                throw new RuntimeException("testSuiteId or testSuiteName must be provided");
+                System.out.println("testSuiteId and testSuiteName are not provided!");
+                return;
             }
 
             IrtClient irtClient = new IrtClient(deploymentType, url, clientId, clientSecret);
