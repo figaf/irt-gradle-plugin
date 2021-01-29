@@ -20,6 +20,7 @@ public class IrtPluginExtension {
     private final Property<String> testSuiteName;
     private final Property<Long> delayBeforePolling;
     private final Property<Boolean> synchronizeBeforeRunningTestSuite;
+    private final Property<String> testSystemId;
 
     public IrtPluginExtension(Project project) {
         this.deploymentType = project.getObjects().property(String.class);
@@ -30,5 +31,6 @@ public class IrtPluginExtension {
         this.testSuiteName = project.getObjects().property(String.class);
         this.delayBeforePolling = project.getObjects().property(Long.class);
         this.synchronizeBeforeRunningTestSuite = project.getObjects().property(Boolean.class);
+        this.testSystemId = project.getObjects().property(String.class);
     }
 }

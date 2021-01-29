@@ -15,6 +15,7 @@ public class IrtPlugin implements Plugin<Project> {
         IrtPluginExtension irtPluginExtension = project.getExtensions().create("irtPlugin", IrtPluginExtension.class, project);
 
         project.getTasks().register("runTestSuite", TestSuiteRunner.class, testSuiteRunner -> {
+            testSuiteRunner.setGroup("irt-plugin");
             testSuiteRunner.setDeploymentType(irtPluginExtension.getDeploymentType().getOrElse("on-premise"));
             testSuiteRunner.setTestSuiteId(irtPluginExtension.getTestSuiteId().getOrNull());
             testSuiteRunner.setTestSuiteName(irtPluginExtension.getTestSuiteName().getOrNull());
@@ -27,6 +28,7 @@ public class IrtPlugin implements Plugin<Project> {
             }
             testSuiteRunner.setDelayBeforePolling(delayBeforePolling);
             testSuiteRunner.setSynchronizeBeforeRunningTestSuite(irtPluginExtension.getSynchronizeBeforeRunningTestSuite().getOrElse(true));
+            testSuiteRunner.setTestSystemId(irtPluginExtension.getTestSystemId().getOrNull());
         });
     }
 }
