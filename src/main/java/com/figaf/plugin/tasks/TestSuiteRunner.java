@@ -3,6 +3,7 @@ package com.figaf.plugin.tasks;
 import com.figaf.plugin.IrtClient;
 import com.figaf.plugin.entities.SimpleIntegrationObject;
 import com.figaf.plugin.entities.SimpleSynchronizationResult;
+import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.gradle.api.DefaultTask;
@@ -14,6 +15,7 @@ import java.util.*;
 /**
  * @author Arsenii Istlentev
  */
+@Getter
 @Setter
 public class TestSuiteRunner extends DefaultTask {
 
