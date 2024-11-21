@@ -1,42 +1,39 @@
 plugins {
-    id 'com.gradle.plugin-publish' version '0.11.0'
+    id 'com.gradle.plugin-publish' version '1.3.0'
     id "java-gradle-plugin"
-    id "java"
-    id "maven"
+    id "java-library"
     id 'maven-publish'
 }
 
-dependencies {
-    compile gradleApi()
-    compileOnly 'org.projectlombok:lombok:1.18.8'
-    annotationProcessor 'org.projectlombok:lombok:1.18.8'
-    compile group: 'commons-codec', name: 'commons-codec', version: '1.2'
-    compile group: 'commons-io', name: 'commons-io', version: '2.5'
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
-    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-    compile group: 'org.apache.httpcomponents', name: 'httpcore', version: '4.4.10'
-    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.3'
-    compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.3'
-    compile group: 'org.json', name: 'json', version: '20180813'
-    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.0.0'
-}
+group = 'com.figaf'
+version = '2.0.RELEASE'
 
 repositories {
-    jcenter()
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+    mavenLocal()
 }
-
-group = 'com.figaf'
-version = '1.2.RELEASE'
 
 publishing {
     publications {
-        pluginPublication (MavenPublication) {
-            from    components.java
-            groupId    project.group
-            artifactId    "irt-plugin"
-            version    project.version
+        pluginPublication(MavenPublication) {
+            from components.java
+            groupId project.group
+            artifactId "irt-plugin"
+            version project.version
         }
     }
+}
+
+
+dependencies {
+//    implementation gradleApi()
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    implementation("commons-io:commons-io:2.17.0")
+    implementation("org.apache.commons:commons-lang3:3.17.0")
+    implementation("org.apache.httpcomponents:httpclient:4.5.14")
+    implementation("org.json:json:20240303")
 }
 
 gradlePlugin {
@@ -44,19 +41,11 @@ gradlePlugin {
         irtPlugin {
             id = 'com.figaf.irt-plugin'
             implementationClass = 'com.figaf.plugin.IrtPlugin'
-        }
-    }
-}
-
-pluginBundle {
-    website = 'https://github.com/figaf/irt-gradle-plugin'
-    vcsUrl = 'https://github.com/figaf/irt-gradle-plugin.git'
-    description = 'Figaf SAP IRT Plugin'
-    tags = ['sap', 'cpi', 'figaf', 'irt']
-
-    plugins {
-        irtPlugin {
             displayName = 'Figaf IRT Plugin'
+            website = 'https://github.com/figaf/irt-gradle-plugin'
+            vcsUrl = 'https://github.com/figaf/irt-gradle-plugin.git'
+            description = 'Figaf SAP IRT Plugin'
+            tags = ['sap', 'cpi', 'figaf', 'irt']
         }
     }
 }
